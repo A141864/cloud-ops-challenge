@@ -79,7 +79,7 @@ inspec exec tests/ \
         --bastion-user=ec2-user
 ```
 
-If the tests are succesful, you should see 7 successful tests:
+If the tests are succesful, you will see 7 successful tests:
 ![](img/tests.png)
 
 ## Deletion
