@@ -1,4 +1,4 @@
-# Code Challenge
+# CloudOps Challenge
 
 This repository contains Cloudformation templates to deploy the application shown below. This is an artifact from a code challenge and is not suitable for production use.
 
