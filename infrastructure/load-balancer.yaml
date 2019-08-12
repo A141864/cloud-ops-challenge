@@ -1,0 +1,59 @@
+Parameters:
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet::Id
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet::Id
+
+  PublicSecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+
+  WebServerID:
+    Type: String
+
+  VPC:
+    Type: AWS::EC2::VPC::Id
+    Description: Choose which VPC the security groups should be deployed to
+
+Resources:
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: LoadBalancer
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroups:
+        - !Ref PublicSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref DefaultTargetGroup
+
+  DefaultTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: DefaultTargetGroup
+      Protocol: HTTP
+      Targets:
+        - Id: !Ref WebServerID
+          Port: 80
+      VpcId: !Ref VPC
+      Port: 80
+
+Outputs:
+  DNSName:
+    Value: !GetAtt LoadBalancer.DNSName

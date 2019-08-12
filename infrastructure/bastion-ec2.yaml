@@ -1,0 +1,57 @@
+Parameters:
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+    
+  Subnet:
+    Type: AWS::EC2::Subnet::Id
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+
+  KeyName:
+    Type: String
+
+Resources:
+  ExternalIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  AssociateControlPort:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt ExternalIP.AllocationId
+      NetworkInterfaceId: !Ref BastionInterface
+
+  BastionInterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      SubnetId: !Ref Subnet
+      Description: Interface for controlling traffic such as SSH
+      GroupSet:
+        - !Ref SecurityGroup
+      SourceDestCheck: true
+      Tags:
+        - Key: Network
+          Value: Web
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Bastion-Server-Interface
+
+  Bastion:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0dc96254d5535925f
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref BastionInterface
+          DeviceIndex: 0
+      Tags:
+        - Key: Network
+          Value: Web
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Bastion-Server
+
+Outputs:
+  ExternalIP:
+    Value: !Ref ExternalIP

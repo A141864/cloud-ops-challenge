@@ -1,0 +1,69 @@
+Parameters:
+  RemoteAccessCIDR:
+    Description: This CIDR range will be whitelisted to connect to the Bastion host on port 22
+    Type: String
+  IndexHTMLSource:
+    Description: > 
+      Link to a HTML file that will be served by HTTPD. 
+      For example https://raw.githubusercontent.com/google/web-starter-kit/master/app/index.html
+    Type: String
+  KeyName:
+    Type: String
+
+Resources:
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://a141864.s3-ap-southeast-2.amazonaws.com/vpc.yaml
+      Parameters:
+        EnvironmentName: !Ref AWS::StackName
+
+  SecurityGroups:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://a141864.s3-ap-southeast-2.amazonaws.com/security-groups.yaml
+      Parameters:
+        EnvironmentName: !Ref AWS::StackName
+        RemoteAccessCIDR: !Ref RemoteAccessCIDR
+        VPC: !GetAtt VPC.Outputs.VPC
+
+  LoadBalancer:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://a141864.s3-ap-southeast-2.amazonaws.com/load-balancer.yaml
+      Parameters:
+        EnvironmentName: !Ref AWS::StackName
+        PublicSubnet1: !GetAtt VPC.Outputs.PublicSubnet1
+        PublicSubnet2: !GetAtt VPC.Outputs.PublicSubnet2
+        PublicSecurityGroup: !GetAtt SecurityGroups.Outputs.PublicSecurityGroup
+        WebServerID: !GetAtt WebServer.Outputs.WebServerID
+        VPC: !GetAtt VPC.Outputs.VPC
+
+  WebServer:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://a141864.s3-ap-southeast-2.amazonaws.com/web-ec2.yaml
+      Parameters:
+        EnvironmentName: !Ref AWS::StackName
+        SecurityGroup: !GetAtt SecurityGroups.Outputs.PrivateSecurityGroup
+        Subnet: !GetAtt VPC.Outputs.PrivateSubnet
+        KeyName: !Ref KeyName
+        IndexHTMLSource: !Ref IndexHTMLSource
+
+  BastionHost:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://a141864.s3-ap-southeast-2.amazonaws.com/bastion-ec2.yaml
+      Parameters:
+        EnvironmentName: !Ref AWS::StackName
+        SecurityGroup: !GetAtt SecurityGroups.Outputs.PublicSecurityGroup
+        Subnet: !GetAtt VPC.Outputs.PublicSubnet1
+        KeyName: !Ref KeyName
+
+Outputs:
+  BastionExternalIP:
+    Value: !GetAtt BastionHost.Outputs.ExternalIP
+  WebPrimaryPrivateIpAddress:
+    Value: !GetAtt WebServer.Outputs.PrimaryPrivateIpAddress
+  LoadBalancerDNSName:
+    Value: !GetAtt LoadBalancer.Outputs.DNSName
